@@ -61,4 +61,28 @@ else
   echo "  ??   /home/divsketch-cv/htdocs not found"
 fi
 echo ""
+echo "=========================================="
+echo "  502 debug: PM2 + backend port + nginx"
+echo "=========================================="
+if command -v pm2 &>/dev/null; then
+  echo "PM2 status:"
+  pm2 status 2>/dev/null || true
+  echo ""
+  echo "Backend listening on :4000?"
+  if curl -sf --max-time 2 http://127.0.0.1:4000 >/dev/null 2>&1; then
+    echo "  OK   curl http://127.0.0.1:4000 responds"
+  else
+    echo "  FAIL nothing on :4000 (app may be stopped or crashing)"
+    echo "  Last 15 lines of PM2 logs for 'probashicv':"
+    pm2 logs probashicv --lines 15 --nostream 2>/dev/null || true
+  fi
+else
+  echo "  (pm2 not in PATH – install: npm i -g pm2)"
+fi
+echo ""
+if command -v nginx &>/dev/null; then
+  echo "Nginx proxy for cv.divsketch.com (grep proxy_pass / upstream):"
+  grep -r "proxy_pass\|upstream" /etc/nginx/ 2>/dev/null | grep -v "\.default" | head -20 || true
+fi
+echo ""
 echo "Done."

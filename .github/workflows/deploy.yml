@@ -34,3 +34,10 @@ jobs:
             pm2 restart probashicv || pm2 start ecosystem.config.cjs
             pm2 save
             pm2 status
+            sleep 3
+            if ! curl -sf http://127.0.0.1:4000 > /dev/null; then
+              echo "Backend not responding on :4000. PM2 logs:"
+              pm2 logs probashicv --lines 50 --nostream
+              exit 1
+            fi
+            echo "Backend OK on :4000"
