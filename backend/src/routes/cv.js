@@ -26,6 +26,8 @@ const upload = multer({ storage });
 export const cvRouter = express.Router();
 
 function getSystemChromePath() {
+  const envPath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  if (envPath && fs.existsSync(envPath)) return envPath;
   if (process.platform === "darwin") {
     const paths = [
       "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -35,25 +37,36 @@ function getSystemChromePath() {
       if (fs.existsSync(p)) return p;
     }
   }
-  const envPath = process.env.PUPPETEER_EXECUTABLE_PATH;
-  if (envPath && fs.existsSync(envPath)) return envPath;
+  if (process.platform === "linux") {
+    const paths = [
+      "/snap/bin/chromium",
+      "/usr/bin/chromium",
+      "/usr/bin/chromium-browser",
+      "/usr/bin/google-chrome-stable",
+      "/usr/bin/google-chrome"
+    ];
+    for (const p of paths) {
+      if (fs.existsSync(p)) return p;
+    }
+  }
   return null;
 }
 
 async function launchBrowser() {
-  const options = {
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
-  };
-  try {
-    return await puppeteer.launch(options);
-  } catch (err) {
-    const chromePath = getSystemChromePath();
-    if (chromePath) {
-      return await puppeteer.launch({ ...options, executablePath: chromePath });
-    }
-    throw err;
+  const args = [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+    "--disable-software-rasterizer",
+    "--single-process"
+  ];
+  const chromePath = getSystemChromePath();
+  const options = { headless: true, args };
+  if (chromePath) {
+    options.executablePath = chromePath;
   }
+  return await puppeteer.launch(options);
 }
 
 async function renderCvPdf(res, cv) {

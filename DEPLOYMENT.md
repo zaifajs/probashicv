@@ -139,6 +139,28 @@ Use a process manager so it keeps running (see PM2 below).
 
 ---
 
+## 6.1 PDF download (Chromium on the server)
+
+PDF generation uses Puppeteer and needs a Chromium/Chrome binary on the server. If **Download PDF** returns 500 in production, install Chromium and point the app to it.
+
+**On the VPS (Ubuntu/Debian):**
+
+```bash
+sudo apt-get update
+sudo apt-get install -y chromium-browser
+# or on some systems: sudo apt-get install -y chromium
+```
+
+Then in `backend/.env` on the server, set (optional but recommended):
+
+```env
+PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+```
+
+If the binary is elsewhere, run `which chromium-browser` or `which chromium` and set that path. The app also checks `/usr/bin/chromium` and `/usr/bin/google-chrome-stable` automatically. Restart the Node app (e.g. `pm2 restart probashicv`) after installing Chromium or changing the env.
+
+---
+
 ## 7. Keep the app running: PM2
 
 Install PM2 and start the backend:
