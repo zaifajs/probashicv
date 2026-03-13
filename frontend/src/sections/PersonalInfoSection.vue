@@ -29,7 +29,12 @@ const idTypeOptions = [
 function photoPreviewSrc(photo) {
   if (!photo || typeof photo !== "string") return "";
   if (photo.startsWith("data:") || photo.startsWith("http")) return photo;
-  const base = import.meta.env.VITE_API_URL || "http://localhost:4000";
+  const base =
+    import.meta.env.VITE_API_URL !== undefined && String(import.meta.env.VITE_API_URL) !== ""
+      ? import.meta.env.VITE_API_URL
+      : import.meta.env.DEV
+        ? "http://localhost:4000"
+        : "";
   return `${base}${photo}`;
 }
 

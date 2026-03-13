@@ -102,7 +102,12 @@ const photoSrc = computed(() => {
   if (!value || typeof value !== "string") return "";
   if (value.startsWith("data:")) return value;
   if (value.startsWith("http")) return value;
-  const base = import.meta.env.VITE_API_URL || "http://localhost:4000";
+  const base =
+    import.meta.env.VITE_API_URL !== undefined && String(import.meta.env.VITE_API_URL) !== ""
+      ? import.meta.env.VITE_API_URL
+      : import.meta.env.DEV
+        ? "http://localhost:4000"
+        : "";
   return `${base}${value}`;
 });
 

@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useCvStore } from "../store/cv";
 import { useAuthStore } from "../store/auth";
+import { apiBase } from "../services/api";
 import { cvService } from "../services/cvService";
 import { aiService } from "../services/aiService";
 import CvPreview from "../components/CvPreview.vue";
@@ -229,7 +230,7 @@ async function onPhotoChange(event) {
   try {
     if (authStore.isAuthenticated && cv.value.id) {
       const result = await cvService.uploadPhoto(cv.value.id, file);
-      cv.value.cvData.personalInfo.photo = `${import.meta.env.VITE_API_URL || "http://localhost:4000"}${result.photoUrl}`;
+      cv.value.cvData.personalInfo.photo = `${apiBase}${result.photoUrl}`;
     } else {
       cv.value.cvData.personalInfo.photo = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -272,10 +273,11 @@ async function runPreviewTranslation() {
     if (requestId !== translationRequestId) return;
     translatedCvData.value = translated;
     lastTranslationSignature = currentSignature;
-  } catch (_error) {
+  } catch (err) {
     if (requestId !== translationRequestId) return;
     translatedCvData.value = null;
-    translationError.value = "Could not translate preview right now.";
+    translationError.value =
+      err?.response?.data?.message || "Could not translate preview right now.";
   } finally {
     if (requestId === translationRequestId) {
       translatingPreview.value = false;

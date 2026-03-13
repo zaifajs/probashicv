@@ -13,11 +13,16 @@ const { t } = useI18n();
 
 const loading = ref(false);
 const suggestion = ref("");
+const error = ref("");
 
 async function generate() {
   loading.value = true;
+  error.value = "";
   try {
     suggestion.value = await aiService.generate(props.modelValue, props.targetLanguage, props.contentType);
+  } catch (e) {
+    const msg = e?.response?.data?.message || e?.message || "AI request failed. Check your connection or try again.";
+    error.value = msg;
   } finally {
     loading.value = false;
   }
@@ -49,6 +54,7 @@ function accept() {
     </div>
 
     <div v-if="loading" class="text-xs text-slate-500">Generating...</div>
+    <div v-if="error" class="rounded bg-amber-50 p-2 text-xs text-amber-800">{{ error }}</div>
     <div v-if="suggestion" class="space-y-2">
       <p class="rounded bg-white p-2 text-sm text-slate-700">{{ suggestion }}</p>
       <button class="rounded bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white" @click="accept">

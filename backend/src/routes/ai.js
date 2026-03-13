@@ -70,7 +70,14 @@ aiRouter.post("/generate", async (req, res, next) => {
     const generatedText = completion.choices?.[0]?.message?.content?.trim() || "";
     return res.json({ generatedText });
   } catch (error) {
-    return next(error);
+    const msg = error?.message || String(error);
+    if (error?.status === 429) {
+      return res.status(429).json({ message: "OpenAI rate limit exceeded. Try again in a moment." });
+    }
+    if (error?.status === 401) {
+      return res.status(502).json({ message: "OpenAI API key is invalid or revoked." });
+    }
+    return res.status(502).json({ message: msg || "AI generation failed." });
   }
 });
 
