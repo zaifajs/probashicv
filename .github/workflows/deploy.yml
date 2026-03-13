@@ -24,6 +24,7 @@ jobs:
           script_stop: true
           script: |
             set -e
+            git config --global --add safe.directory /home/divsketch-cv/htdocs
             cd /home/divsketch-cv/htdocs
             git pull origin main
             npm ci
