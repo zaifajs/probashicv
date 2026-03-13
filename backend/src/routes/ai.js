@@ -70,6 +70,7 @@ aiRouter.post("/generate", async (req, res, next) => {
     const generatedText = completion.choices?.[0]?.message?.content?.trim() || "";
     return res.json({ generatedText });
   } catch (error) {
+    console.error("[AI generate] OpenAI error:", error?.message, error?.code, error?.cause);
     const msg = error?.message || String(error);
     if (error?.status === 429) {
       return res.status(429).json({ message: "OpenAI rate limit exceeded. Try again in a moment." });
@@ -135,6 +136,7 @@ aiRouter.post("/translate-cv", async (req, res, next) => {
     const cvDataWithPhoto = restorePhoto(translatedCvData, cvData);
     return res.json({ cvData: cvDataWithPhoto });
   } catch (error) {
+    console.error("[AI translate-cv] OpenAI error:", error?.message, error?.code, error?.cause);
     if (error?.status === 429) {
       return res.status(429).json({ message: "OpenAI rate limit exceeded. Please try again in a moment." });
     }
