@@ -1,6 +1,8 @@
 node_modules
 .DS_Store
 .env
+3.txt
+terminals/
 dist
 coverage
 frontend/node_modules
