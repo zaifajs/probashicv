@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  cvs          Cv[]
+
+  @@map("users")
+}
+
+model Cv {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @map("user_id")
+  title          String
+  slug           String   @unique
+  cvData         Json     @map("cv_data")
+  outputLanguage String   @default("en") @map("output_language")
+  isPublic       Boolean  @default(false) @map("is_public")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("cvs")
+}
