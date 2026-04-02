@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useAuthStore } from "./store/auth";
 import { useI18n } from "vue-i18n";
@@ -7,16 +7,21 @@ import { useI18n } from "vue-i18n";
 const route = useRoute();
 const auth = useAuthStore();
 const { locale, t } = useI18n();
-const LANGUAGE_STORAGE_KEY = "probashicv_ui_language";
+const LANGUAGE_STORAGE_KEY = "cv_builder_ui_language";
+const LEGACY_LANGUAGE_STORAGE_KEY = "probashicv_ui_language";
 const currentLocale = computed(() => locale.value);
+const mobileMenuOpen = ref(false);
 
 function setLocale(nextLocale) {
   locale.value = nextLocale;
   localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLocale);
+  localStorage.removeItem(LEGACY_LANGUAGE_STORAGE_KEY);
+  mobileMenuOpen.value = false;
 }
 
 function logout() {
   auth.logout();
+  mobileMenuOpen.value = false;
 }
 
 function isActive(path) {
@@ -25,11 +30,22 @@ function isActive(path) {
 }
 
 onMounted(() => {
-  const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  const saved =
+    localStorage.getItem(LANGUAGE_STORAGE_KEY) ||
+    localStorage.getItem(LEGACY_LANGUAGE_STORAGE_KEY);
   if (saved && ["en", "bn", "pt"].includes(saved)) {
     locale.value = saved;
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, saved);
+    localStorage.removeItem(LEGACY_LANGUAGE_STORAGE_KEY);
   }
 });
+
+watch(
+  () => route.fullPath,
+  () => {
+    mobileMenuOpen.value = false;
+  }
+);
 </script>
 
 <template>
@@ -37,10 +53,26 @@ onMounted(() => {
     <header class="header-dashboard">
       <div class="header-inner">
         <router-link to="/" class="header-logo">
-          <span class="header-logo-text">ProbashiCV</span>
+          <span class="header-logo-text">CV Builder</span>
         </router-link>
 
-        <nav class="header-nav">
+        <button
+          type="button"
+          class="header-mobile-toggle"
+          :aria-expanded="mobileMenuOpen ? 'true' : 'false'"
+          aria-controls="mobile-menu"
+          @click="mobileMenuOpen = !mobileMenuOpen"
+        >
+          <span class="sr-only">Toggle menu</span>
+          <svg v-if="!mobileMenuOpen" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <svg v-else class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M6 18L18 6" />
+          </svg>
+        </button>
+
+        <nav v-show="!mobileMenuOpen" class="header-nav hidden md:flex md:flex-wrap md:items-center md:gap-1">
           <router-link
             to="/"
             class="header-link"
@@ -101,6 +133,63 @@ onMounted(() => {
           </div>
         </nav>
       </div>
+
+      <nav v-if="mobileMenuOpen" id="mobile-menu" class="header-mobile-nav md:hidden">
+        <router-link
+          to="/"
+          class="header-mobile-link"
+          :class="{ 'header-mobile-link--active': isActive('/') && route.path === '/' }"
+        >
+          {{ t("nav.home") }}
+        </router-link>
+        <router-link
+          to="/builder"
+          class="header-mobile-link"
+          :class="{ 'header-mobile-link--active': isActive('/builder') }"
+        >
+          Builder
+        </router-link>
+        <router-link
+          v-if="auth.isAuthenticated"
+          to="/dashboard"
+          class="header-mobile-link"
+          :class="{ 'header-mobile-link--active': isActive('/dashboard') }"
+        >
+          {{ t("nav.dashboard") }}
+        </router-link>
+
+        <template v-if="!auth.isAuthenticated">
+          <router-link to="/login" class="header-mobile-link" :class="{ 'header-mobile-link--active': isActive('/login') }">
+            {{ t("nav.login") }}
+          </router-link>
+          <router-link
+            to="/register"
+            class="header-mobile-link header-mobile-link--cta"
+            :class="{ 'header-mobile-link--active': isActive('/register') }"
+          >
+            {{ t("nav.register") }}
+          </router-link>
+        </template>
+        <template v-else>
+          <button type="button" class="header-mobile-link text-left" @click="logout">
+            {{ t("nav.logout") }}
+          </button>
+        </template>
+
+        <div class="header-mobile-lang">
+          <label for="header-lang-select-mobile" class="sr-only">Language</label>
+          <select
+            id="header-lang-select-mobile"
+            :value="currentLocale"
+            @change="(e) => setLocale(e.target.value)"
+            class="header-lang-select w-full"
+          >
+            <option value="en">EN</option>
+            <option value="bn">BN</option>
+            <option value="pt">PT</option>
+          </select>
+        </div>
+      </nav>
     </header>
 
     <main class="container-default py-6">
@@ -133,8 +222,32 @@ onMounted(() => {
   background-clip: text;
 }
 
-.header-nav {
-  @apply flex flex-wrap items-center gap-1;
+.header-mobile-toggle {
+  @apply inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white p-2 text-slate-700 transition hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-2 md:hidden;
+}
+
+.header-mobile-nav {
+  @apply mx-auto mb-2 flex w-full max-w-[90rem] flex-col gap-1 px-4;
+}
+
+.header-mobile-link {
+  @apply rounded-lg px-3 py-2 text-sm font-medium text-slate-700 no-underline transition hover:bg-slate-100;
+}
+
+.header-mobile-link--active {
+  @apply bg-brand-50 text-brand-700;
+}
+
+.header-mobile-link--cta {
+  @apply bg-brand-600 text-white hover:bg-brand-700;
+}
+
+.header-mobile-link--cta.header-mobile-link--active {
+  @apply bg-brand-600 text-white;
+}
+
+.header-mobile-lang {
+  @apply mt-2 border-t border-slate-200 pt-2;
 }
 
 .header-link {

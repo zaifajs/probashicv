@@ -33,7 +33,12 @@ export const cvService = {
     return response.data;
   },
   async renderPdf(payload) {
-    const response = await api.post("/api/cv/pdf/render", payload, { responseType: "blob" });
+    const body = { ...payload };
+    if (body.cvId === undefined && body.id !== undefined) {
+      body.cvId = body.id;
+      delete body.id;
+    }
+    const response = await api.post("/api/cv/pdf/render", body, { responseType: "blob" });
     return response.data;
   },
   async getPublicBySlug(slug) {

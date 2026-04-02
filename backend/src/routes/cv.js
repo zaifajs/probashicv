@@ -13,6 +13,10 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+const MAX_INLINE_CV_BYTES = 250 * 1024; // ~250 KB of JSON payload for inline renders
+const MAX_PHOTO_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB uploads
+const ALLOWED_PHOTO_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
+
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadDir),
   filename: (_req, file, cb) => {
@@ -21,7 +25,18 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: MAX_PHOTO_SIZE_BYTES },
+  fileFilter: (_req, file, cb) => {
+    if (!ALLOWED_PHOTO_MIME.has(file.mimetype || "")) {
+      const error = new Error("Only JPG, PNG or WEBP images are allowed.");
+      error.statusCode = 400;
+      return cb(error);
+    }
+    return cb(null, true);
+  }
+});
 
 export const cvRouter = express.Router();
 
@@ -128,14 +143,54 @@ cvRouter.post("/", requireAuth, async (req, res, next) => {
   }
 });
 
-cvRouter.post("/pdf/render", async (req, res, next) => {
+function assertInlinePayloadSize(cvData) {
   try {
-    const { title = "CV", slug = "cv", outputLanguage = "en", cvData = {} } = req.body;
+    const payloadSize = Buffer.byteLength(JSON.stringify(cvData ?? {}), "utf8");
+    if (payloadSize > MAX_INLINE_CV_BYTES) {
+      const err = new Error("CV payload is too large to render inline. Save the CV first and retry.");
+      err.statusCode = 413;
+      throw err;
+    }
+  } catch (error) {
+    if (!error.statusCode) error.statusCode = 400;
+    throw error;
+  }
+}
+
+function hasInlinePayload(cvData) {
+  return cvData && typeof cvData === "object" && Object.keys(cvData).length > 0;
+}
+
+cvRouter.post("/pdf/render", requireAuth, async (req, res, next) => {
+  try {
+    const { cvId, title = "CV", slug = "cv", outputLanguage = "en", cvData = {} } = req.body;
+    const inlinePayloadProvided = hasInlinePayload(cvData);
+    if (inlinePayloadProvided) {
+      assertInlinePayloadSize(cvData);
+    }
+
+    let dataToRender;
+
+    if (cvId) {
+      const existing = await prisma.cv.findFirst({
+        where: { id: Number(cvId), userId: req.user.userId }
+      });
+      if (!existing) {
+        return res.status(404).json({ message: "CV not found." });
+      }
+      dataToRender = inlinePayloadProvided ? cvData : existing.cvData;
+    } else {
+      if (!inlinePayloadProvided) {
+        return res.status(400).json({ message: "cvData is required when cvId is not provided." });
+      }
+      dataToRender = cvData;
+    }
+
     return await renderCvPdf(res, {
       title,
       slug,
       outputLanguage,
-      cvData
+      cvData: dataToRender
     });
   } catch (error) {
     console.error("[PDF render error]", error?.message || error);

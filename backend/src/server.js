@@ -3,5 +3,5 @@ import { config } from "./config.js";
 
 app.listen(config.port, () => {
   // eslint-disable-next-line no-console
-  console.log(`ProbashiCV backend running on http://localhost:${config.port}`);
+  console.log(`CV Builder backend running on http://localhost:${config.port}`);
 });

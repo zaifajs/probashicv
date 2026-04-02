@@ -1,4 +1,4 @@
-# ProbashiCV MVP
+# CV Builder MVP
 
 Multilingual Europass-style CV builder for Bangladeshi expats in Europe.
 

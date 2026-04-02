@@ -8,7 +8,7 @@ const path = require("path");
 module.exports = {
   apps: [
     {
-      name: "probashicv",
+      name: "cv-builder",
       script: "npm",
       args: "run start",
       cwd: path.resolve(__dirname),

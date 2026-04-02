@@ -1,10 +1,10 @@
-# ProbashiCV - Project Status
+# CV Builder - Project Status
 
 Last updated: 2026-03-07
 
 ## Project Overview
 
-ProbashiCV is an MVP multilingual Europass-style CV builder for Bangladeshi expats in Europe.
+CV Builder is an MVP multilingual Europass-style CV builder for Bangladeshi expats in Europe.
 
 Monorepo structure:
 
@@ -83,7 +83,7 @@ Implemented to avoid forcing login before building:
 - Home "Start Building" sends users to `/builder`.
 - Router fallback redirects unauthenticated `/dashboard` access to `/builder`.
 - Guest save stores draft in localStorage key:
-  - `probashicv_guest_draft`
+- `cv_builder_guest_draft` (with legacy fallback from `probashicv_guest_draft`)
 - Guest PDF:
   - falls back to `window.print()` with message.
 - Logged-in users can save to DB and export backend-generated PDF.
