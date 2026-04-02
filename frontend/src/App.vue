@@ -72,7 +72,7 @@ watch(
           </svg>
         </button>
 
-        <nav v-show="!mobileMenuOpen" class="header-nav hidden md:flex md:flex-wrap md:items-center md:gap-1">
+        <nav class="header-nav hidden md:flex md:flex-wrap md:items-center md:gap-1">
           <router-link
             to="/"
             class="header-link"

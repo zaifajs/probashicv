@@ -196,7 +196,9 @@ cvRouter.post("/pdf/render", requireAuth, async (req, res, next) => {
     console.error("[PDF render error]", error?.message || error);
     console.error(error?.stack);
     if (!res.headersSent) {
-      return res.status(500).json({ message: "PDF generation failed.", error: error?.message });
+      const statusCode = Number(error?.statusCode) || 500;
+      const defaultMessage = statusCode >= 500 ? "PDF generation failed." : "PDF render request is invalid.";
+      return res.status(statusCode).json({ message: error?.message || defaultMessage });
     }
     next(error);
   }
