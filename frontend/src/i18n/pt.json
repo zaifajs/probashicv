@@ -20,6 +20,9 @@
   },
   "cv": {
     "selectOutputLanguageSection": "Selecionar Idioma de Saída do CV",
+    "stepPersonal": "Informações pessoais",
+    "stepWorkEducation": "Trabalho e educação",
+    "stepSkillsLanguages": "Competências e idiomas",
     "title": "Título do CV",
     "outputLanguage": "Idioma de saída",
     "public": "Tornar público",
@@ -28,7 +31,8 @@
     "downloadPdf": "Descarregar PDF",
     "generateAi": "Gerar Texto IA",
     "regenerate": "Regenerar",
-    "accept": "Aceitar"
+    "accept": "Aceitar",
+    "demoNotice": "Aqui há um CV de exemplo—altere qualquer secção para refletir a sua própria história."
   },
   "cvPreview": {
     "yourName": "Seu Nome",

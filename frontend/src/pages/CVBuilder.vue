@@ -34,10 +34,75 @@ const totalSteps = 3;
 const mobilePreviewOpen = ref(false);
 
 const stepLabels = computed(() => [
-  "Personal info",
-  "Work & education",
-  "Skills & languages"
+  t("cv.stepPersonal"),
+  t("cv.stepWorkEducation"),
+  t("cv.stepSkillsLanguages")
 ]);
+
+function isNonEmpty(value) {
+  return String(value ?? "").trim().length > 0;
+}
+
+function hasAnyFilledValue(item = {}) {
+  return Object.values(item || {}).some((value) => isNonEmpty(value));
+}
+
+const personalInfoCompletion = computed(() => {
+  const personal = cv.value?.cvData?.personalInfo || {};
+  const fields = [
+    personal.name,
+    personal.jobTitle,
+    personal.nationality,
+    personal.dateOfBirth,
+    personal.gender,
+    personal.address,
+    personal.phone,
+    personal.email,
+    personal.aboutMe,
+    personal.photo,
+    personal.workPermitCountry
+  ];
+  const filled = fields.filter((value) => isNonEmpty(value)).length;
+  return fields.length ? filled / fields.length : 0;
+});
+
+const workSectionComplete = computed(() => {
+  const items = Array.isArray(cv.value?.cvData?.workExperience) ? cv.value.cvData.workExperience : [];
+  return items.some((item) => hasAnyFilledValue(item));
+});
+
+const educationSectionComplete = computed(() => {
+  const items = Array.isArray(cv.value?.cvData?.education) ? cv.value.cvData.education : [];
+  return items.some((item) => hasAnyFilledValue(item));
+});
+
+const skillsSectionComplete = computed(() => {
+  const items = Array.isArray(cv.value?.cvData?.skills) ? cv.value.cvData.skills : [];
+  return items.some((item) => isNonEmpty(typeof item === "string" ? item : item?.name));
+});
+
+const languagesSectionComplete = computed(() => {
+  const items = Array.isArray(cv.value?.cvData?.languages) ? cv.value.cvData.languages : [];
+  return items.some((item) => {
+    if (typeof item === "string") return isNonEmpty(item);
+    return isNonEmpty(item?.name);
+  });
+});
+
+const stepCompletions = computed(() => {
+  const step1 = personalInfoCompletion.value;
+  const step2 = ((workSectionComplete.value ? 1 : 0) + (educationSectionComplete.value ? 1 : 0)) / 2;
+  const step3 = ((skillsSectionComplete.value ? 1 : 0) + (languagesSectionComplete.value ? 1 : 0)) / 2;
+  return [step1, step2, step3];
+});
+
+const stepProgress = computed(() => {
+  const completions = stepCompletions.value;
+  if (!completions.length) return 0;
+  const total = completions.reduce((sum, value) => sum + value, 0);
+  return (total / completions.length) * 100;
+});
+const stepProgressPercent = computed(() => Math.round(stepProgress.value));
 
 function goToStep(step) {
   currentStep.value = Math.min(totalSteps, Math.max(1, step));
@@ -391,7 +456,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-[90rem] px-4 py-6 pb-24 lg:pb-6">
+  <div class="mx-auto w-full max-w-[90rem] px-4 pt-0 pb-24 lg:py-6 lg:pb-6">
     <Transition name="status-toast">
       <div
         v-if="showStatusToast"
@@ -418,26 +483,43 @@ onUnmounted(() => {
       </div>
     </Transition>
 
-    <section class="grid grid-cols-1 gap-8 lg:grid-cols-8">
+    <div class="mb-4 flex items-center gap-3">
+      <div class="relative h-2 flex-1 overflow-hidden rounded-full bg-slate-200/70">
+        <div
+          class="h-full rounded-full bg-gradient-to-r from-cyan-500 via-brand-500 to-indigo-500 shadow-[0_0_14px_rgba(59,130,246,0.45)] transition-all duration-300 ease-out"
+          :style="{ width: `${stepProgress}%` }"
+        />
+      </div>
+      <span class="shrink-0 text-xs font-semibold text-slate-600">{{ stepProgressPercent }}%</span>
+    </div>
+
+    <section class="grid grid-cols-1 gap-4 lg:grid-cols-8 lg:gap-8">
       <div class="order-2 space-y-6 lg:order-none lg:col-span-3">
-        <div class="rounded-xl border border-slate-200 bg-white p-3">
-          <div class="mb-3 flex flex-wrap gap-2">
+        <div>
+          <div class="grid grid-cols-3 gap-2">
             <button
               v-for="(label, idx) in stepLabels"
               :key="label"
               type="button"
-              class="rounded-lg px-3 py-1.5 text-xs font-semibold transition"
+              class="flex h-[2.25rem] min-w-0 items-center justify-center gap-2 rounded-lg border px-2 text-center text-xs transition"
               :class="
-                currentStep === idx + 1
-                  ? 'bg-brand-600 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                stepCompletions[idx] >= 1
+                  ? 'border-emerald-300 bg-emerald-50 text-emerald-800 shadow-sm hover:border-emerald-400 hover:bg-emerald-100/70 hover:shadow active:scale-[0.98]'
+                  : currentStep === idx + 1
+                    ? 'border-amber-300 bg-amber-50 text-amber-800 shadow-sm ring-1 ring-amber-200/70 hover:border-amber-400 hover:bg-amber-100/70 hover:shadow active:scale-[0.98]'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-amber-300 hover:bg-amber-50/70 hover:text-amber-700 hover:shadow-sm active:scale-[0.98]'
               "
               @click="goToStep(idx + 1)"
             >
-              {{ idx + 1 }}. {{ label }}
+              <span
+                class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
+                :class="stepCompletions[idx] >= 1 ? 'bg-emerald-100 text-emerald-700' : currentStep === idx + 1 ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-500'"
+              >
+                {{ idx + 1 }}
+              </span>
+              <span class="truncate leading-none">{{ label }}</span>
             </button>
           </div>
-          <p class="text-xs text-slate-500">Step {{ currentStep }} of {{ totalSteps }}</p>
         </div>
 
         <template v-if="currentStep === 1">
@@ -482,7 +564,7 @@ onUnmounted(() => {
       </div>
 
     <div class="order-1 lg:order-none lg:col-span-5 lg:sticky lg:top-6 lg:h-fit">
-      <div class="mb-8 flex flex-wrap items-start gap-3">
+      <div class="mb-0 flex flex-wrap items-start gap-3 lg:mb-8">
         <div class="flex flex-col gap-2">
           <div class="flex flex-nowrap items-stretch gap-2 sm:gap-3">
             <input
@@ -520,6 +602,9 @@ onUnmounted(() => {
         </span>
       </div>
       <div class="relative hidden max-h-[calc(100vh-12rem)] overflow-y-auto rounded-md shadow-xl shadow-slate-300/30 lg:block">
+        <p class="mb-3 rounded-lg border border-dashed border-slate-200 bg-white/80 px-3 py-2 text-xs text-slate-600">
+          {{ t("cv.demoAlert") }}
+        </p>
         <div
           v-if="translatingPreview"
           class="preview-loading-overlay absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-2xl bg-white/90 backdrop-blur-sm"

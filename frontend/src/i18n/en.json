@@ -20,6 +20,9 @@
   },
   "cv": {
     "selectOutputLanguageSection": "Select CV Output Language",
+    "stepPersonal": "Personal info",
+    "stepWorkEducation": "Work & education",
+    "stepSkillsLanguages": "Skills & languages",
     "title": "CV Title",
     "outputLanguage": "Output Language",
     "public": "Make Public",
@@ -28,7 +31,8 @@
     "downloadPdf": "Download PDF",
     "generateAi": "Generate AI Text",
     "regenerate": "Regenerate",
-    "accept": "Accept"
+    "accept": "Accept",
+    "demoAlert": "Example CV content is shown here—update any section to reflect your own story."
   },
   "cvPreview": {
     "yourName": "Your Name",

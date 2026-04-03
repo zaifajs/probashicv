@@ -13,10 +13,19 @@ import { config } from "./config.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const app = express();
+const isProduction = process.env.NODE_ENV === "production";
+const allowedOrigins = isProduction
+  ? [config.frontendUrl]
+  : [config.frontendUrl, "http://localhost:5173", "http://localhost:5174"];
 
 app.use(
   cors({
-    origin: config.frontendUrl,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("CORS origin not allowed"));
+    },
     credentials: true
   })
 );
@@ -33,7 +42,6 @@ app.use("/api/ai", aiRouter);
 app.use(errorHandler);
 
 // In production, optionally serve frontend build (single-server deployment)
-const isProduction = process.env.NODE_ENV === "production";
 const frontendDist = path.resolve(__dirname, "../../frontend/dist");
 if (isProduction && fs.existsSync(frontendDist)) {
   app.use(express.static(frontendDist));

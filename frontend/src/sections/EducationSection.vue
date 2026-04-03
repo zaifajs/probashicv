@@ -13,15 +13,33 @@ function addItem() {
     endDate: ""
   });
 }
+
+function removeItem(index) {
+  if (items.value.length <= 1) return;
+  items.value.splice(index, 1);
+}
 </script>
 
 <template>
   <section class="pb-6">
     <div class="mb-4 flex items-center justify-between">
       <h2 class="section-title">{{ t("cvPreview.education") }}</h2>
-      <button class="btn-ghost" @click="addItem">+ Add</button>
+      <button type="button" class="btn-ghost" @click="addItem">+ Add</button>
     </div>
     <div v-for="(item, index) in items" :key="index" class="card-subtle mb-4 grid gap-4 sm:grid-cols-2">
+      <div class="col-span-full flex items-center justify-between">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          {{ t("cvPreview.education") }} {{ index + 1 }}
+        </p>
+        <button
+          v-if="items.length > 1"
+          type="button"
+          class="btn-ghost py-1 text-slate-500"
+          @click="removeItem(index)"
+        >
+          {{ t("cvPreview.remove") }}
+        </button>
+      </div>
       <div class="flex flex-col">
         <label class="form-label">{{ t("cvPreview.degree") }}</label>
         <input v-model="item.degree" class="form-input" :placeholder="t('cvPreview.degree')" />

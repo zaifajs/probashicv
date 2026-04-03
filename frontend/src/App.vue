@@ -49,7 +49,7 @@ watch(
 </script>
 
 <template>
-  <div class="min-h-screen" :class="{ 'font-bangla': currentLocale === 'bn' }">
+  <div class="min-h-screen">
     <header class="header-dashboard">
       <div class="header-inner">
         <router-link to="/" class="header-logo">
@@ -192,7 +192,7 @@ watch(
       </nav>
     </header>
 
-    <main class="container-default py-6">
+    <main class="container-default pb-6">
       <router-view />
     </main>
   </div>

@@ -20,6 +20,9 @@
   },
   "cv": {
     "selectOutputLanguageSection": "সিভির আউটপুট ভাষা নির্বাচন করুন",
+    "stepPersonal": "ব্যক্তিগত তথ্য",
+    "stepWorkEducation": "কাজ ও শিক্ষা",
+    "stepSkillsLanguages": "দক্ষতা ও ভাষা",
     "title": "সিভি শিরোনাম",
     "outputLanguage": "আউটপুট ভাষা",
     "public": "পাবলিক করুন",
@@ -28,7 +31,8 @@
     "downloadPdf": "পিডিএফ ডাউনলোড",
     "generateAi": "এআই টেক্সট তৈরি করুন",
     "regenerate": "আবার তৈরি করুন",
-    "accept": "গ্রহণ করুন"
+    "accept": "গ্রহণ করুন",
+    "demoAlert": "এটি একটি উদাহরণ সিভি, আপনার প্রয়োজন মাফিক যেকোনো অংশ পরিবর্তন করতে পারেন।"
   },
   "cvPreview": {
     "yourName": "আপনার নাম",

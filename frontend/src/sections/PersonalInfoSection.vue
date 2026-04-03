@@ -54,36 +54,56 @@ function removeIdentityDocument(index) {
   <section class="pb-6">
     <h2 class="section-title mb-4">{{ t("cvPreview.personalInfo") }}</h2>
 
-    <!-- Photo at top -->
-    <div class="mb-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-      <label class="group relative block cursor-pointer">
-        <input type="file" accept="image/*" class="sr-only" @change="emit('photo-change', $event)" />
-        <div
-          class="flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 transition group-hover:border-brand-400 group-hover:bg-brand-50/50"
-        >
-          <img
+    <!-- Photo + key contact fields -->
+    <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-[auto,minmax(0,1fr)]">
+      <div class="flex flex-col items-start">
+        <label class="group relative block cursor-pointer">
+          <input type="file" accept="image/*" class="sr-only" @change="emit('photo-change', $event)" />
+          <div
+            class="flex h-36 w-36 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 transition group-hover:border-brand-400 group-hover:bg-brand-50/50"
+          >
+            <img
+              v-if="photoPreviewSrc(model.photo)"
+              :src="photoPreviewSrc(model.photo)"
+              alt="Profile"
+              class="h-full w-full object-cover"
+            />
+            <span v-else class="flex flex-col items-center gap-1 text-slate-400">
+              <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
+              </svg>
+              <span class="text-xs">{{ t("cvPreview.photo") }}</span>
+            </span>
+          </div>
+          <button
             v-if="photoPreviewSrc(model.photo)"
-            :src="photoPreviewSrc(model.photo)"
-            alt="Profile"
-            class="h-full w-full object-cover"
-          />
-          <span v-else class="flex flex-col items-center gap-1 text-slate-400">
-            <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
+            type="button"
+            class="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-rose-200 bg-white/95 text-rose-500 shadow-sm transition hover:bg-white hover:text-rose-700"
+            :aria-label="t('cvPreview.remove')"
+            @click.prevent.stop="model.photo = ''"
+          >
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M6 18L18 6" />
             </svg>
-            <span class="text-xs">{{ t("cvPreview.photo") }}</span>
-          </span>
+          </button>
+          <span class="mt-1.5 block text-center text-xs text-slate-500 group-hover:text-brand-600">Click to upload</span>
+        </label>
+        <p v-if="photoUploading" class="mt-2 text-sm text-slate-500">Uploading photo...</p>
+      </div>
+
+      <div class="grid gap-4">
+        <div class="flex flex-col">
+          <label class="form-label">{{ t("auth.name") }}</label>
+          <input v-model="model.name" class="form-input" :placeholder="t('auth.name')" />
         </div>
-        <span class="mt-1.5 block text-center text-xs text-slate-500 group-hover:text-brand-600">Click to upload</span>
-      </label>
-      <p v-if="photoUploading" class="text-sm text-slate-500">Uploading photo...</p>
+        <div class="flex flex-col">
+          <label class="form-label">{{ t("cvPreview.phoneNumber") }}</label>
+          <input v-model="model.phone" class="form-input" :placeholder="t('cvPreview.phoneNumber')" />
+        </div>
+      </div>
     </div>
 
     <div class="grid gap-4 sm:grid-cols-2">
-      <div class="flex flex-col">
-        <label class="form-label">{{ t("auth.name") }}</label>
-        <input v-model="model.name" class="form-input" :placeholder="t('auth.name')" />
-      </div>
       <div class="flex flex-col">
         <label class="form-label">{{ t("cvPreview.jobTitle") }}</label>
         <input v-model="model.jobTitle" class="form-input" :placeholder="t('cvPreview.jobTitle')" />
@@ -105,10 +125,6 @@ function removeIdentityDocument(index) {
         <select v-model="model.gender" class="form-input">
           <option v-for="opt in genderOptions" :key="opt.value" :value="opt.value">{{ t(opt.labelKey) }}</option>
         </select>
-      </div>
-      <div class="flex flex-col">
-        <label class="form-label">{{ t("cvPreview.phoneNumber") }}</label>
-        <input v-model="model.phone" class="form-input" :placeholder="t('cvPreview.phoneNumber')" />
       </div>
       <div class="flex flex-col sm:col-span-2">
         <CountrySearchSelect

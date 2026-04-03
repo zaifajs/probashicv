@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { useCvStore } from "../store/cv";
+import { defaultCvData, useCvStore } from "../store/cv";
 import { cvService } from "../services/cvService";
 
 const router = useRouter();
@@ -10,16 +10,10 @@ const cvStore = useCvStore();
 async function createNew() {
   cvStore.currentCv = {
     id: null,
-    title: `CV ${new Date().toLocaleDateString()}`,
+    title: "Cook CV - Lisbon",
     outputLanguage: "en",
     isPublic: false,
-    cvData: {
-      personalInfo: { name: "", jobTitle: "", address: "", phone: "", email: "", photo: "" },
-      workExperience: [{ jobTitle: "", company: "", location: "", startDate: "", endDate: "", description: "" }],
-      education: [{ degree: "", school: "", location: "", startDate: "", endDate: "" }],
-      skills: [],
-      languages: []
-    }
+    cvData: defaultCvData()
   };
   const created = await cvStore.createCv();
   router.push(`/builder/${created.id}`);
