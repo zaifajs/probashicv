@@ -4,7 +4,7 @@ import path from "path";
 import fs from "fs";
 import puppeteer from "puppeteer";
 import { prisma } from "../lib/prisma.js";
-import { requireAuth } from "../middleware/auth.js";
+import { optionalAuth, requireAuth } from "../middleware/auth.js";
 import { makeCvSlug } from "../utils/slug.js";
 import { getCvHtml } from "../utils/pdfTemplate.js";
 
@@ -161,7 +161,7 @@ function hasInlinePayload(cvData) {
   return cvData && typeof cvData === "object" && Object.keys(cvData).length > 0;
 }
 
-cvRouter.post("/pdf/render", requireAuth, async (req, res, next) => {
+cvRouter.post("/pdf/render", optionalAuth, async (req, res, next) => {
   try {
     const { cvId, title = "CV", slug = "cv", outputLanguage = "en", cvData = {} } = req.body;
     const inlinePayloadProvided = hasInlinePayload(cvData);
@@ -172,6 +172,9 @@ cvRouter.post("/pdf/render", requireAuth, async (req, res, next) => {
     let dataToRender;
 
     if (cvId) {
+      if (!req.user?.userId) {
+        return res.status(401).json({ message: "Login required when rendering a saved CV." });
+      }
       const existing = await prisma.cv.findFirst({
         where: { id: Number(cvId), userId: req.user.userId }
       });

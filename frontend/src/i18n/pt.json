@@ -32,7 +32,9 @@
     "public": "Tornar público",
     "save": "Guardar CV",
     "unsavedChanges": "Alterações não guardadas",
+    "unsavedChangesHint": "Existem alterações não guardadas",
     "downloadPdf": "Descarregar PDF",
+    "preparingPdf": "A preparar PDF...",
     "generateAi": "Gerar Texto IA",
     "regenerate": "Regenerar",
     "accept": "Aceitar",
@@ -40,7 +42,7 @@
     "toast": {
       "close": "Fechar notificação",
       "guestDraftLoaded": "Rascunho de convidado carregado",
-      "guestMode": "Modo convidado: crie primeiro e inicie sessão depois para guardar online",
+      "guestMode": "Modo convidado: pode criar, guardar e descarregar PDF sem iniciar sessão",
       "savedAccount": "Guardado na sua conta",
       "savedLocal": "Guardado localmente (modo convidado)",
       "loginRequiredPdf": "Inicie sessão para descarregar um PDF.",

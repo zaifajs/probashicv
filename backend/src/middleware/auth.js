@@ -17,3 +17,18 @@ export function requireAuth(req, res, next) {
     return res.status(401).json({ message: "Invalid token" });
   }
 }
+
+export function optionalAuth(req, _res, next) {
+  const header = req.headers.authorization;
+  const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
+
+  if (!token) return next();
+
+  try {
+    const decoded = jwt.verify(token, config.jwtSecret);
+    req.user = decoded;
+  } catch (_error) {
+    // Ignore invalid token for optional auth routes.
+  }
+  return next();
+}

@@ -4,14 +4,14 @@ import { cvService } from "../services/cvService";
 export function defaultCvData() {
   return {
     personalInfo: {
-      name: "Fatema Ahmed",
+      name: "Nadim Ahmed",
       jobTitle: "Cook",
       nationality: "Bangladeshi",
       dateOfBirth: "1994-08-14",
-      gender: "Female",
+      gender: "Male",
       address: "Rua do Benformoso 32, 1100-082 Lisbon, Portugal",
       phone: "+351 912 345 678",
-      email: "sadia.rahman.cv@example.com",
+      email: "nadim.ahmed.cv@example.com",
       aboutMe:
         "Experienced cook based in Lisbon with strong skills in prep, hygiene, and high-volume service. Focused on consistent quality, teamwork, and safe kitchen operations.",
       photo:

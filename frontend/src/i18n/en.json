@@ -32,7 +32,9 @@
     "public": "Make Public",
     "save": "Save CV",
     "unsavedChanges": "Unsaved changes",
+    "unsavedChangesHint": "There are unsaved changes",
     "downloadPdf": "Download PDF",
+    "preparingPdf": "Preparing PDF...",
     "generateAi": "Generate AI Text",
     "regenerate": "Regenerate",
     "accept": "Accept",
@@ -40,7 +42,7 @@
     "toast": {
       "close": "Close notification",
       "guestDraftLoaded": "Guest draft loaded",
-      "guestMode": "Guest mode: build first, login later to save online",
+      "guestMode": "Guest mode: you can build, save, and download PDF without logging in",
       "savedAccount": "Saved to your account",
       "savedLocal": "Saved locally (guest mode)",
       "loginRequiredPdf": "Please log in to download a PDF.",

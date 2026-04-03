@@ -23,6 +23,7 @@ const LEGACY_GUEST_DRAFT_KEY = "probashicv_guest_draft";
 
 const saving = ref(false);
 const photoUploading = ref(false);
+const pdfPreparing = ref(false);
 const message = ref("");
 const messageKey = ref("");
 const statusBannerClosed = ref(false);
@@ -103,7 +104,6 @@ const stepProgress = computed(() => {
   const total = completions.reduce((sum, value) => sum + value, 0);
   return (total / completions.length) * 100;
 });
-const stepProgressPercent = computed(() => Math.round(stepProgress.value));
 
 function goToStep(step) {
   currentStep.value = Math.min(totalSteps, Math.max(1, step));
@@ -301,21 +301,8 @@ async function save() {
 }
 
 async function downloadPdf() {
-  if (!authStore.isAuthenticated) {
-    message.value = "";
-    messageKey.value = "cv.toast.loginRequiredPdf";
-    return;
-  }
-
-  if (!cv.value.id) {
-    await save();
-    if (!cv.value.id) {
-      message.value = "";
-      messageKey.value = "cv.toast.saveBeforeDownload";
-      return;
-    }
-  }
-
+  if (pdfPreparing.value) return;
+  pdfPreparing.value = true;
   try {
     let pdfCvData = cv.value.cvData;
 
@@ -358,6 +345,8 @@ async function downloadPdf() {
   } catch (_error) {
     message.value = "";
     messageKey.value = "cv.toast.pdfDownloadFailed";
+  } finally {
+    pdfPreparing.value = false;
   }
 }
 
@@ -480,7 +469,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-[90rem] px-4 pt-0 pb-24 lg:py-6 lg:pb-6">
+  <div class="mx-auto w-full max-w-[90rem] px-4 pt-0 pb-24 lg:pb-6 lg:pt-0">
     <Transition name="status-toast">
       <div
         v-if="showStatusToast"
@@ -507,14 +496,13 @@ onUnmounted(() => {
       </div>
     </Transition>
 
-    <div class="mb-4 flex items-center gap-3">
-      <div class="relative h-2 flex-1 overflow-hidden rounded-full bg-slate-200/70">
+    <div class="relative left-1/2 mb-6 mt-0 flex w-screen -translate-x-1/2 px-0">
+      <div class="relative h-2 flex-1 overflow-hidden bg-slate-200/70">
         <div
-          class="h-full rounded-full bg-gradient-to-r from-cyan-500 via-brand-500 to-indigo-500 shadow-[0_0_14px_rgba(59,130,246,0.45)] transition-all duration-300 ease-out"
+          class="h-full bg-gradient-to-r from-cyan-500 via-brand-500 to-indigo-500 shadow-[0_0_14px_rgba(59,130,246,0.45)] transition-all duration-300 ease-out"
           :style="{ width: `${stepProgress}%` }"
         />
       </div>
-      <span class="shrink-0 text-xs font-semibold text-slate-600">{{ stepProgressPercent }}%</span>
     </div>
 
     <section class="grid grid-cols-1 gap-4 lg:grid-cols-8 lg:gap-8">
@@ -606,22 +594,47 @@ onUnmounted(() => {
               <input v-model="cv.isPublic" type="checkbox" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
               {{ t("cv.public") }}
             </label>
-            <button type="button" class="btn-primary hidden items-center justify-center py-1.5 text-sm lg:inline-flex" :disabled="saving" @click="save">
-              {{ t("cv.save") }}
-            </button>
+            <div class="relative hidden lg:block">
+              <button
+                type="button"
+                class="btn-primary inline-flex items-center justify-center py-1.5 text-sm"
+                :disabled="saving || !isDirty"
+                @click="save"
+              >
+                {{ t("cv.save") }}
+              </button>
+              <p
+                class="pointer-events-none absolute left-1/2 top-full mt-1 w-max -translate-x-1/2 text-[11px] font-medium text-amber-600 transition-opacity duration-150"
+                :class="isDirty ? 'opacity-100' : 'opacity-0'"
+              >
+                {{ t("cv.unsavedChangesHint") }}
+              </p>
+            </div>
           </div>
         </div>
         <span class="ml-auto flex shrink-0 items-center gap-2">
           <button
             type="button"
             class="hidden items-center gap-2 rounded-lg border border-indigo-300/70 bg-gradient-to-r from-indigo-500 via-brand-500 to-cyan-500 px-4 py-1.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/35 focus:outline-none focus:ring-2 focus:ring-indigo-400/60 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 lg:inline-flex"
-            :disabled="saving"
+            :disabled="saving || pdfPreparing"
+            :aria-busy="pdfPreparing ? 'true' : 'false'"
             @click="downloadPdf"
           >
-            <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              v-if="pdfPreparing"
+              class="h-4 w-4 shrink-0 animate-spin"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V1a11 11 0 00-11 11h3z" />
+            </svg>
+            <svg v-else class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            {{ t("cv.downloadPdf") }}
+            {{ pdfPreparing ? t("cv.preparingPdf") : t("cv.downloadPdf") }}
           </button>
         </span>
       </div>
@@ -674,13 +687,25 @@ onUnmounted(() => {
             <button
               type="button"
               class="inline-flex items-center gap-1.5 rounded-lg border border-indigo-300/70 bg-gradient-to-r from-indigo-500 via-brand-500 to-cyan-500 px-3 py-1.5 text-xs font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/60 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-              :disabled="saving"
+              :disabled="saving || pdfPreparing"
+              :aria-busy="pdfPreparing ? 'true' : 'false'"
               @click="downloadPdf"
             >
-              <svg class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <svg
+                v-if="pdfPreparing"
+                class="h-3.5 w-3.5 shrink-0 animate-spin"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V1a11 11 0 00-11 11h3z" />
+              </svg>
+              <svg v-else class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              {{ t("cv.downloadPdf") }}
+              {{ pdfPreparing ? t("cv.preparingPdf") : t("cv.downloadPdf") }}
             </button>
             <button type="button" class="rounded-md border border-slate-200 px-2 py-1 text-sm text-slate-600" @click="closeMobilePreview">
               Close
@@ -728,7 +753,12 @@ onUnmounted(() => {
 
     <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white p-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] lg:hidden">
       <div class="flex items-center gap-2">
-        <button type="button" class="btn-primary flex flex-1 items-center justify-center py-2.5 text-sm" :disabled="saving" @click="save">
+        <button
+          type="button"
+          class="btn-primary flex flex-1 items-center justify-center py-2.5 text-sm"
+          :disabled="saving || !isDirty"
+          @click="save"
+        >
           {{ t("cv.save") }}
         </button>
         <button type="button" class="btn-secondary flex-1 py-2.5 text-sm" @click="openMobilePreview">
