@@ -11,6 +11,12 @@ const LANGUAGE_STORAGE_KEY = "cv_builder_ui_language";
 const LEGACY_LANGUAGE_STORAGE_KEY = "probashicv_ui_language";
 const currentLocale = computed(() => locale.value);
 const mobileMenuOpen = ref(false);
+const feedbackEmail = computed(() => {
+  const user = ["h", "i"].join("");
+  const domain = ["huzaifa", ".", "me"].join("");
+  return `${user}@${domain}`;
+});
+const feedbackHref = computed(() => `mailto:${feedbackEmail.value}`);
 
 function setLocale(nextLocale) {
   locale.value = nextLocale;
@@ -49,7 +55,7 @@ watch(
 </script>
 
 <template>
-  <div class="min-h-screen">
+  <div class="min-h-screen flex flex-col">
     <header class="header-dashboard">
       <div class="header-inner">
         <router-link to="/" class="header-logo">
@@ -192,9 +198,20 @@ watch(
       </nav>
     </header>
 
-    <main class="container-default pb-6">
+    <main class="container-default flex-1 pb-6">
       <router-view />
     </main>
+
+    <footer class="app-footer">
+      <div class="app-footer-inner">
+        <p>
+          {{ t("footer.credit") }}
+          <span class="mx-1">|</span>
+          {{ t("footer.feedbackLabel") }}
+          <a class="footer-link" :href="feedbackHref">{{ feedbackEmail }}</a>
+        </p>
+      </div>
+    </footer>
   </div>
 </template>
 
@@ -303,5 +320,17 @@ watch(
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+.app-footer {
+  @apply border-t border-slate-200/90 bg-white/95;
+}
+
+.app-footer-inner {
+  @apply mx-auto w-full max-w-[90rem] px-4 py-3 text-center text-xs text-slate-500;
+}
+
+.footer-link {
+  @apply font-medium text-slate-700 underline decoration-slate-300 underline-offset-2 transition-colors hover:text-brand-600;
 }
 </style>

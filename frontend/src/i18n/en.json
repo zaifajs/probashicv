@@ -11,6 +11,10 @@
     "subtitle": "Designed for Bangladeshi expats in Europe with multilingual support.",
     "cta": "Start Building"
   },
+  "footer": {
+    "credit": "Designed & built by Huzaifa",
+    "feedbackLabel": "For feedback:"
+  },
   "auth": {
     "name": "Name",
     "email": "Email",
@@ -32,7 +36,19 @@
     "generateAi": "Generate AI Text",
     "regenerate": "Regenerate",
     "accept": "Accept",
-    "demoAlert": "Example CV content is shown here—update any section to reflect your own story."
+    "demoAlert": "Example CV content is shown here—update any section to reflect your own story.",
+    "toast": {
+      "close": "Close notification",
+      "guestDraftLoaded": "Guest draft loaded",
+      "guestMode": "Guest mode: build first, login later to save online",
+      "savedAccount": "Saved to your account",
+      "savedLocal": "Saved locally (guest mode)",
+      "loginRequiredPdf": "Please log in to download a PDF.",
+      "saveBeforeDownload": "Save your CV before downloading.",
+      "translatePdfFailed": "Could not translate for PDF. Downloading current CV content.",
+      "pdfGenerationFailed": "PDF generation failed. Please try again.",
+      "pdfDownloadFailed": "PDF download failed. Please try again."
+    }
   },
   "cvPreview": {
     "yourName": "Your Name",

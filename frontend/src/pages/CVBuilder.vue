@@ -24,6 +24,7 @@ const LEGACY_GUEST_DRAFT_KEY = "probashicv_guest_draft";
 const saving = ref(false);
 const photoUploading = ref(false);
 const message = ref("");
+const messageKey = ref("");
 const statusBannerClosed = ref(false);
 const lastSavedSnapshot = ref("");
 let messageTimeout = null;
@@ -134,13 +135,26 @@ const isDirty = computed(() => {
 });
 
 const statusMessage = computed(() => {
+  if (messageKey.value) return t(messageKey.value);
   if (message.value) return message.value;
   if (isDirty.value) return t("cv.unsavedChanges");
   return "";
 });
 
 const isErrorToast = computed(() => {
-  return statusMessage.value === "Please log in to download a PDF.";
+  return [
+    "cv.toast.loginRequiredPdf",
+    "cv.toast.saveBeforeDownload",
+    "cv.toast.translatePdfFailed",
+    "cv.toast.pdfGenerationFailed",
+    "cv.toast.pdfDownloadFailed"
+  ].includes(messageKey.value);
+});
+
+const isSuccessToast = computed(() => {
+  return ["cv.toast.guestDraftLoaded", "cv.toast.guestMode", "cv.toast.savedAccount", "cv.toast.savedLocal"].includes(
+    messageKey.value
+  );
 });
 
 const showStatusToast = computed(() => {
@@ -242,14 +256,16 @@ async function load() {
         lastSavedSnapshot.value = JSON.stringify(cvStore.currentCv);
         localStorage.setItem(GUEST_DRAFT_KEY, draft);
         localStorage.removeItem(LEGACY_GUEST_DRAFT_KEY);
-        message.value = "Guest draft loaded";
+        message.value = "";
+        messageKey.value = "cv.toast.guestDraftLoaded";
       } catch (_error) {
         localStorage.removeItem(GUEST_DRAFT_KEY);
         localStorage.removeItem(LEGACY_GUEST_DRAFT_KEY);
       }
     } else {
       lastSavedSnapshot.value = JSON.stringify(cvStore.currentCv ?? {});
-      message.value = "Guest mode: build first, login later to save online";
+      message.value = "";
+      messageKey.value = "cv.toast.guestMode";
     }
   }
   if (!lastSavedSnapshot.value && cvStore.currentCv) {
@@ -266,14 +282,17 @@ async function save() {
   try {
     if (authStore.isAuthenticated) {
       await cvStore.saveCv();
-      message.value = "Saved to your account";
+      message.value = "";
+      messageKey.value = "cv.toast.savedAccount";
     } else {
       localStorage.setItem(GUEST_DRAFT_KEY, JSON.stringify(cv.value));
-      message.value = "Saved locally (guest mode)";
+      message.value = "";
+      messageKey.value = "cv.toast.savedLocal";
     }
     lastSavedSnapshot.value = JSON.stringify(cv.value);
     messageTimeout = setTimeout(() => {
       message.value = "";
+      messageKey.value = "";
       messageTimeout = null;
     }, 3000);
   } finally {
@@ -283,14 +302,16 @@ async function save() {
 
 async function downloadPdf() {
   if (!authStore.isAuthenticated) {
-    message.value = "Please log in to download a PDF.";
+    message.value = "";
+    messageKey.value = "cv.toast.loginRequiredPdf";
     return;
   }
 
   if (!cv.value.id) {
     await save();
     if (!cv.value.id) {
-      message.value = "Save your CV before downloading.";
+      message.value = "";
+      messageKey.value = "cv.toast.saveBeforeDownload";
       return;
     }
   }
@@ -306,7 +327,8 @@ async function downloadPdf() {
           translatingPreview.value = true;
           pdfCvData = await aiService.translateCv(cv.value.cvData, cv.value.outputLanguage);
         } catch (_error) {
-          message.value = "Could not translate for PDF. Downloading current CV content.";
+          message.value = "";
+          messageKey.value = "cv.toast.translatePdfFailed";
         } finally {
           translatingPreview.value = false;
         }
@@ -322,7 +344,8 @@ async function downloadPdf() {
     });
 
     if (!(await isPdfBlob(blob))) {
-      message.value = "PDF generation failed. Please try again.";
+      message.value = "";
+      messageKey.value = "cv.toast.pdfGenerationFailed";
       return;
     }
 
@@ -333,7 +356,8 @@ async function downloadPdf() {
     link.click();
     URL.revokeObjectURL(url);
   } catch (_error) {
-    message.value = "PDF download failed. Please try again.";
+    message.value = "";
+    messageKey.value = "cv.toast.pdfDownloadFailed";
   }
 }
 
@@ -464,7 +488,7 @@ onUnmounted(() => {
       >
         <div
           class="pointer-events-auto flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 shadow-lg"
-          :class="isErrorToast ? 'border-red-200 bg-red-50 text-red-800' : (message ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800')"
+          :class="isErrorToast ? 'border-red-200 bg-red-50 text-red-800' : (isSuccessToast ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800')"
           role="status"
           aria-live="polite"
         >
@@ -472,7 +496,7 @@ onUnmounted(() => {
           <button
             type="button"
             class="shrink-0 rounded-md border border-current/30 p-1 hover:bg-black/5"
-            aria-label="Close notification"
+            :aria-label="t('cv.toast.close')"
             @click="closeStatusToast"
           >
             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -590,11 +614,11 @@ onUnmounted(() => {
         <span class="ml-auto flex shrink-0 items-center gap-2">
           <button
             type="button"
-            class="btn-secondary hidden items-center gap-2 py-1.5 text-sm lg:inline-flex"
+            class="hidden items-center gap-2 rounded-lg border border-indigo-300/70 bg-gradient-to-r from-indigo-500 via-brand-500 to-cyan-500 px-4 py-1.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/35 focus:outline-none focus:ring-2 focus:ring-indigo-400/60 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 lg:inline-flex"
             :disabled="saving"
             @click="downloadPdf"
           >
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             {{ t("cv.downloadPdf") }}
@@ -647,7 +671,15 @@ onUnmounted(() => {
         <div class="flex items-center justify-between border-b border-slate-200 p-3">
           <h3 class="text-sm font-semibold text-slate-800">Preview</h3>
           <div class="flex items-center gap-2">
-            <button type="button" class="btn-secondary py-1.5 text-xs" :disabled="saving" @click="downloadPdf">
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-indigo-300/70 bg-gradient-to-r from-indigo-500 via-brand-500 to-cyan-500 px-3 py-1.5 text-xs font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/60 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="saving"
+              @click="downloadPdf"
+            >
+              <svg class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
               {{ t("cv.downloadPdf") }}
             </button>
             <button type="button" class="rounded-md border border-slate-200 px-2 py-1 text-sm text-slate-600" @click="closeMobilePreview">
