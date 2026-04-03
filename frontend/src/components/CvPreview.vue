@@ -61,12 +61,19 @@ function hasValue(value) {
   return Boolean(value && String(value).trim());
 }
 
-/** Format YYYY-MM-DD (or ISO date) as DD/MM/YYYY for display; otherwise return as-is */
+/** Format YYYY-MM-DD (or ISO date) as "January 23, 2004"; otherwise return as-is */
 function formatDate(value) {
   const s = String(value ?? "").trim();
   if (!s) return s;
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+  if (!m) return s;
+  const date = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return s;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  }).format(date);
 }
 
 /** Year only from YYYY-MM-DD or ISO date */
@@ -95,7 +102,24 @@ function getTranslation(path) {
   return typeof current === "string" ? current : path;
 }
 
-const previewData = computed(() => props.translatedCvData || props.cv?.cvData || {});
+const previewData = computed(() => {
+  const base = props.cv?.cvData || {};
+  if (!props.translatedCvData) return base;
+  return {
+    ...props.translatedCvData,
+    sectionSettings: base.sectionSettings || props.translatedCvData.sectionSettings
+  };
+});
+const sectionSettings = computed(() => previewData.value?.sectionSettings || {});
+
+function sectionEnabled(key) {
+  return sectionSettings.value?.[key]?.enabled !== false;
+}
+
+function sectionTitle(key, fallbackPath) {
+  const custom = String(sectionSettings.value?.[key]?.title ?? "").trim();
+  return custom || getTranslation(fallbackPath);
+}
 
 const photoSrc = computed(() => {
   const value = previewData.value?.personalInfo?.photo;
@@ -189,28 +213,28 @@ function descriptionBullets(description) {
     <!-- Optional meta: nationality, DOB, gender, work permit, ID/Passport (compact, same line) -->
     <div v-if="hasValue(previewData?.personalInfo?.nationality) || hasValue(previewData?.personalInfo?.dateOfBirth) || hasValue(previewData?.personalInfo?.gender) || hasValue(previewData?.personalInfo?.workPermitCountry) || (previewData?.identityDocuments?.length && previewData.identityDocuments.some(d => hasValue(d.type) || hasValue(d.number)))" class="cv-meta flex flex-wrap gap-x-[18px] gap-y-3 border-b border-slate-100 py-2.5 text-sm text-slate-600">
       <span v-if="hasValue(previewData?.personalInfo?.nationality)">
-        <strong class="text-slate-700">{{ getTranslation("cvPreview.nationality") }}:</strong> {{ previewData?.personalInfo?.nationality }}
+        <strong class="font-semibold text-slate-700">{{ getTranslation("cvPreview.nationality") }}:</strong> {{ previewData?.personalInfo?.nationality }}
       </span>
       <template v-for="(doc, idx) in (previewData?.identityDocuments ?? [])" :key="`doc-${idx}`">
         <span v-if="hasValue(doc.type) || hasValue(doc.number)">
-          <strong class="text-slate-700">{{ doc.type || getTranslation("cvPreview.idTypePlaceholder") }}:</strong> {{ doc.number || "—" }}
+          <strong class="font-semibold text-slate-700">{{ doc.type || getTranslation("cvPreview.idTypePlaceholder") }}:</strong> {{ doc.number || "—" }}
         </span>
       </template>
       <span v-if="hasValue(previewData?.personalInfo?.dateOfBirth)">
-        <strong class="text-slate-700">{{ getTranslation("cvPreview.dateOfBirth") }}:</strong> {{ formatDate(previewData?.personalInfo?.dateOfBirth) }}
+        <strong class="font-semibold text-slate-700">{{ getTranslation("cvPreview.dateOfBirth") }}:</strong> {{ formatDate(previewData?.personalInfo?.dateOfBirth) }}
       </span>
       <span v-if="hasValue(previewData?.personalInfo?.gender)">
-        <strong class="text-slate-700">{{ getTranslation("cvPreview.gender") }}:</strong> {{ previewData?.personalInfo?.gender }}
+        <strong class="font-semibold text-slate-700">{{ getTranslation("cvPreview.gender") }}:</strong> {{ previewData?.personalInfo?.gender }}
       </span>
       <span v-if="hasValue(previewData?.personalInfo?.workPermitCountry)">
-        <strong class="text-slate-700">{{ getTranslation("cvPreview.workPermit") }}:</strong> {{ previewData?.personalInfo?.workPermitCountry }}
+        <strong class="font-semibold text-slate-700">{{ getTranslation("cvPreview.workPermit") }}:</strong> {{ previewData?.personalInfo?.workPermitCountry }}
       </span>
     </div>
 
     <!-- Core skills: same line -->
-    <section class="cv-section border-b border-slate-100 pt-4 pb-4">
-      <h3 class="cv-section-title mb-2.5 border-b-2 border-[#4169E1] pb-1 text-base font-bold text-[#4169E1]">
-        {{ getTranslation("cvPreview.skills") }}
+    <section v-if="sectionEnabled('skills')" class="cv-section border-b border-slate-100 pt-4 pb-4">
+      <h3 class="cv-section-title mb-2.5 border-b border-[#4169E1] pb-1 text-base font-semibold text-[#4169E1]">
+        {{ sectionTitle("skills", "cvPreview.skills") }}
       </h3>
       <p v-if="listValues(Array.isArray(previewData?.skills) ? previewData.skills : []).length" class="text-sm text-slate-800">
         {{ listValues(Array.isArray(previewData?.skills) ? previewData.skills : []).join(", ") }}
@@ -219,9 +243,9 @@ function descriptionBullets(description) {
     </section>
 
     <!-- Professional experience -->
-    <section class="cv-section border-b border-slate-100 pt-4 pb-4">
-      <h3 class="cv-section-title mb-2.5 border-b-2 border-[#4169E1] pb-1 text-base font-bold text-[#4169E1]">
-        {{ getTranslation("cvPreview.workExperience") }}
+    <section v-if="sectionEnabled('workExperience')" class="cv-section border-b border-slate-100 pt-4 pb-4">
+      <h3 class="cv-section-title mb-2.5 border-b border-[#4169E1] pb-1 text-base font-semibold text-[#4169E1]">
+        {{ sectionTitle("workExperience", "cvPreview.workExperience") }}
       </h3>
       <div
         v-for="(work, index) in previewData?.workExperience || []"
@@ -229,13 +253,13 @@ function descriptionBullets(description) {
         class="cv-entry mb-3.5 last:mb-0"
       >
         <div class="flex flex-wrap items-baseline justify-between gap-2">
-          <h4 class="text-base font-bold text-slate-900">{{ work.jobTitle || "-" }}</h4>
+          <h4 class="text-base font-semibold text-slate-900">{{ work.jobTitle || "-" }}</h4>
           <span class="text-sm font-semibold text-slate-700">
             {{ formatDate(work.startDate) || "-" }} – {{ work.endDate ? formatDate(work.endDate) : getTranslation("cvPreview.present") }}
           </span>
         </div>
         <p class="mt-0.5 text-sm text-slate-700">
-          <strong class="text-slate-800">{{ work.company || "-" }}</strong><span v-if="hasValue(work.location)"> · {{ work.location }}</span>
+          <strong class="font-semibold text-slate-800">{{ work.company || "-" }}</strong><span v-if="hasValue(work.location)"> · {{ work.location }}</span>
         </p>
         <ul v-if="descriptionBullets(work.description).length" class="mt-2 list-inside list-disc space-y-0.5 text-sm text-slate-800">
           <li v-for="(line, i) in descriptionBullets(work.description)" :key="i">{{ line }}</li>
@@ -245,9 +269,9 @@ function descriptionBullets(description) {
     </section>
 
     <!-- Education: same style as work experience -->
-    <section class="cv-section border-b border-slate-100 pt-4 pb-4">
-      <h3 class="cv-section-title mb-2.5 border-b-2 border-[#4169E1] pb-1 text-base font-bold text-[#4169E1]">
-        {{ getTranslation("cvPreview.educationTraining") }}
+    <section v-if="sectionEnabled('education')" class="cv-section border-b border-slate-100 pt-4 pb-4">
+      <h3 class="cv-section-title mb-2.5 border-b border-[#4169E1] pb-1 text-base font-semibold text-[#4169E1]">
+        {{ sectionTitle("education", "cvPreview.educationTraining") }}
       </h3>
       <div
         v-for="(item, index) in previewData?.education || []"
@@ -255,21 +279,21 @@ function descriptionBullets(description) {
         class="cv-entry mb-3.5 last:mb-0"
       >
         <div class="flex flex-wrap items-baseline justify-between gap-2">
-          <h4 class="text-base font-bold text-slate-900">{{ item.degree || "-" }}</h4>
+          <h4 class="text-base font-semibold text-slate-900">{{ item.degree || "-" }}</h4>
           <span class="text-sm font-semibold text-slate-700">
             {{ formatDate(item.startDate) || "-" }} – {{ item.endDate ? formatDate(item.endDate) : getTranslation("cvPreview.present") }}
           </span>
         </div>
         <p class="mt-0.5 text-sm text-slate-700">
-          <strong class="text-slate-800">{{ item.school || "-" }}</strong><span v-if="hasValue(item.location)"> · {{ item.location }}</span>
+          <strong class="font-semibold text-slate-800">{{ item.school || "-" }}</strong><span v-if="hasValue(item.location)"> · {{ item.location }}</span>
         </p>
       </div>
     </section>
 
     <!-- Languages: bulleted list -->
-    <section class="cv-section pt-4 pb-4">
-      <h3 class="cv-section-title mb-2.5 border-b-2 border-[#4169E1] pb-1 text-base font-bold text-[#4169E1]">
-        {{ getTranslation("cvPreview.languages") }}
+    <section v-if="sectionEnabled('languages')" class="cv-section pt-4 pb-4">
+      <h3 class="cv-section-title mb-2.5 border-b border-[#4169E1] pb-1 text-base font-semibold text-[#4169E1]">
+        {{ sectionTitle("languages", "cvPreview.languages") }}
       </h3>
       <ul v-if="languageDisplayStrings(previewData?.languages).length" class="list-inside list-disc space-y-1 text-sm text-slate-800">
         <li v-for="(lang, index) in languageDisplayStrings(previewData?.languages)" :key="`lang-${index}`">{{ lang }}</li>

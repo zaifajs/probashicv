@@ -16,7 +16,7 @@ function addItem() {
 }
 
 function removeItem(index) {
-  if (items.value.length <= 1) return;
+  if (items.value.length === 0) return;
   items.value.splice(index, 1);
 }
 </script>
@@ -27,7 +27,7 @@ function removeItem(index) {
       <h2 class="text-lg font-semibold">{{ t("cvPreview.identityDocuments") }}</h2>
       <button
         type="button"
-        class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50"
+        class="btn-secondary px-3 py-1 text-sm"
         @click="addItem"
       >
         {{ t("cvPreview.add") }}
@@ -55,15 +55,14 @@ function removeItem(index) {
           />
         </div>
         <div class="flex items-end">
-        <button
-          v-if="items.length > 1"
-          type="button"
-          class="rounded border border-slate-300 px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
-          :aria-label="t('cvPreview.remove')"
-          @click="removeItem(index)"
-        >
-          {{ t("cvPreview.remove") }}
-        </button>
+          <button
+            type="button"
+            class="btn-secondary px-2 py-1.5 text-xs"
+            :aria-label="t('cvPreview.remove')"
+            @click="removeItem(index)"
+          >
+            {{ t("cvPreview.remove") }}
+          </button>
         </div>
       </div>
     </div>

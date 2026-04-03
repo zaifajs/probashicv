@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { useCvStore } from "../store/cv";
+import { defaultCvData, emptyCvData, useCvStore } from "../store/cv";
 import { useAuthStore } from "../store/auth";
 import { apiBase } from "../services/api";
 import { cvService } from "../services/cvService";
@@ -34,12 +34,17 @@ const cv = computed(() => cvStore.currentCv);
 const currentStep = ref(1);
 const totalSteps = 3;
 const mobilePreviewOpen = ref(false);
+const demoPanelClosed = ref(false);
 
 const stepLabels = computed(() => [
   t("cv.stepPersonal"),
   t("cv.stepWorkEducation"),
   t("cv.stepSkillsLanguages")
 ]);
+
+function isSectionEnabled(key) {
+  return cv.value?.cvData?.sectionSettings?.[key]?.enabled !== false;
+}
 
 function isNonEmpty(value) {
   return String(value ?? "").trim().length > 0;
@@ -69,21 +74,25 @@ const personalInfoCompletion = computed(() => {
 });
 
 const workSectionComplete = computed(() => {
+  if (!isSectionEnabled("workExperience")) return true;
   const items = Array.isArray(cv.value?.cvData?.workExperience) ? cv.value.cvData.workExperience : [];
   return items.some((item) => hasAnyFilledValue(item));
 });
 
 const educationSectionComplete = computed(() => {
+  if (!isSectionEnabled("education")) return true;
   const items = Array.isArray(cv.value?.cvData?.education) ? cv.value.cvData.education : [];
   return items.some((item) => hasAnyFilledValue(item));
 });
 
 const skillsSectionComplete = computed(() => {
+  if (!isSectionEnabled("skills")) return true;
   const items = Array.isArray(cv.value?.cvData?.skills) ? cv.value.cvData.skills : [];
   return items.some((item) => isNonEmpty(typeof item === "string" ? item : item?.name));
 });
 
 const languagesSectionComplete = computed(() => {
+  if (!isSectionEnabled("languages")) return true;
   const items = Array.isArray(cv.value?.cvData?.languages) ? cv.value.cvData.languages : [];
   return items.some((item) => {
     if (typeof item === "string") return isNonEmpty(item);
@@ -123,6 +132,22 @@ function openMobilePreview() {
 
 function closeMobilePreview() {
   mobilePreviewOpen.value = false;
+}
+
+function applyPrefilledData() {
+  if (!cv.value) return;
+  cv.value.cvData = defaultCvData();
+  ensureIdentityDocuments(cv.value.cvData);
+  ensureLanguages(cv.value.cvData);
+  ensureSectionSettings(cv.value.cvData);
+}
+
+function clearPrefilledData() {
+  if (!cv.value) return;
+  cv.value.cvData = emptyCvData();
+  ensureIdentityDocuments(cv.value.cvData);
+  ensureLanguages(cv.value.cvData);
+  ensureSectionSettings(cv.value.cvData);
 }
 
 const isDirty = computed(() => {
@@ -216,22 +241,43 @@ async function isPdfBlob(blob) {
 
 function ensureIdentityDocuments(cvData) {
   if (!cvData) return;
-  if (!Array.isArray(cvData.identityDocuments) || cvData.identityDocuments.length === 0) {
-    cvData.identityDocuments = [{ type: "", number: "" }];
+  if (!Array.isArray(cvData.identityDocuments)) {
+    cvData.identityDocuments = [];
   }
 }
 
 function ensureLanguages(cvData) {
   if (!cvData) return;
   if (!Array.isArray(cvData.languages)) {
-    cvData.languages = [{ name: "", level: "" }];
+    cvData.languages = [];
     return;
   }
   cvData.languages = cvData.languages.map((item) =>
     typeof item === "string" ? { name: item, level: "" } : { name: item?.name ?? "", level: item?.level ?? "" }
   );
-  if (cvData.languages.length === 0) {
-    cvData.languages = [{ name: "", level: "" }];
+}
+
+function ensureSectionSettings(cvData) {
+  if (!cvData) return;
+  if (!cvData.sectionSettings || typeof cvData.sectionSettings !== "object") {
+    cvData.sectionSettings = {};
+  }
+  const defaults = {
+    workExperience: { title: "", enabled: true },
+    education: { title: "", enabled: true },
+    skills: { title: "", enabled: true },
+    languages: { title: "", enabled: true }
+  };
+  for (const [key, value] of Object.entries(defaults)) {
+    const existing = cvData.sectionSettings[key];
+    if (!existing || typeof existing !== "object") {
+      cvData.sectionSettings[key] = { ...value };
+      continue;
+    }
+    cvData.sectionSettings[key] = {
+      title: String(existing.title ?? ""),
+      enabled: existing.enabled !== false
+    };
   }
 }
 
@@ -240,6 +286,7 @@ async function load() {
     await cvStore.loadCv(route.params.id);
     ensureIdentityDocuments(cvStore.currentCv?.cvData);
     ensureLanguages(cvStore.currentCv?.cvData);
+    ensureSectionSettings(cvStore.currentCv?.cvData);
     lastSavedSnapshot.value = JSON.stringify(cvStore.currentCv);
     return;
   }
@@ -253,6 +300,7 @@ async function load() {
         cvStore.currentCv = JSON.parse(draft);
         ensureIdentityDocuments(cvStore.currentCv?.cvData);
         ensureLanguages(cvStore.currentCv?.cvData);
+        ensureSectionSettings(cvStore.currentCv?.cvData);
         lastSavedSnapshot.value = JSON.stringify(cvStore.currentCv);
         localStorage.setItem(GUEST_DRAFT_KEY, draft);
         localStorage.removeItem(LEGACY_GUEST_DRAFT_KEY);
@@ -428,6 +476,14 @@ watch(contentSignature, () => {
   queuePreviewTranslation();
 });
 
+watch(
+  () => cv.value?.cvData,
+  (data) => {
+    ensureSectionSettings(data);
+  },
+  { immediate: true }
+);
+
 watch(statusMessage, (next, prev) => {
   if (next !== prev) {
     statusBannerClosed.value = false;
@@ -469,7 +525,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-[90rem] px-4 pt-0 pb-24 lg:pb-6 lg:pt-0">
+  <div class="mx-auto w-full max-w-[90rem] px-4 pt-2 pb-24 lg:pb-6 lg:pt-6">
     <Transition name="status-toast">
       <div
         v-if="showStatusToast"
@@ -496,16 +552,18 @@ onUnmounted(() => {
       </div>
     </Transition>
 
-    <div class="relative left-1/2 mb-6 mt-0 flex w-screen -translate-x-1/2 px-0">
-      <div class="relative h-2 flex-1 overflow-hidden bg-slate-200/70">
-        <div
-          class="h-full bg-gradient-to-r from-cyan-500 via-brand-500 to-indigo-500 shadow-[0_0_14px_rgba(59,130,246,0.45)] transition-all duration-300 ease-out"
-          :style="{ width: `${stepProgress}%` }"
-        />
+    <Teleport to="#builder-progress-host">
+      <div class="mt-0 flex w-full px-0">
+        <div class="relative h-2 flex-1 overflow-hidden bg-slate-200/70">
+          <div
+            class="h-full bg-gradient-to-r from-cyan-500 via-brand-500 to-indigo-500 shadow-[0_0_14px_rgba(59,130,246,0.45)] transition-all duration-300 ease-out"
+            :style="{ width: `${stepProgress}%` }"
+          />
+        </div>
       </div>
-    </div>
+    </Teleport>
 
-    <section class="grid grid-cols-1 gap-4 lg:grid-cols-8 lg:gap-8">
+    <section class="grid grid-cols-1 pt-2 gap-1 lg:grid-cols-8 lg:gap-8">
       <div class="order-2 space-y-6 lg:order-none lg:col-span-3">
         <div>
           <div class="grid grid-cols-3 gap-2">
@@ -534,6 +592,30 @@ onUnmounted(() => {
           </div>
         </div>
 
+        <div v-if="!demoPanelClosed" class="card-subtle space-y-2">
+          <div class="flex items-start justify-between gap-2">
+            <p class="text-xs text-slate-600">{{ t("cv.demoAlert") }}</p>
+            <button
+              type="button"
+              class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50"
+              :aria-label="t('cv.toast.close')"
+              @click="demoPanelClosed = true"
+            >
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M6 18L18 6" />
+              </svg>
+            </button>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" class="btn-secondary py-1.5 text-xs" @click="applyPrefilledData">
+              {{ t("cv.applyDemoData") }}
+            </button>
+            <button type="button" class="btn-secondary py-1.5 text-xs" @click="clearPrefilledData">
+              {{ t("cv.clearDemoData") }}
+            </button>
+          </div>
+        </div>
+
         <template v-if="currentStep === 1">
           <PersonalInfoSection
             v-model="cv.cvData.personalInfo"
@@ -545,13 +627,32 @@ onUnmounted(() => {
         </template>
 
         <template v-else-if="currentStep === 2">
-          <WorkExperienceSection v-model="cv.cvData.workExperience" :target-language="cv.outputLanguage" />
-          <EducationSection v-model="cv.cvData.education" />
+          <WorkExperienceSection
+            v-model="cv.cvData.workExperience"
+            v-model:section-config="cv.cvData.sectionSettings.workExperience"
+            :target-language="cv.outputLanguage"
+            :default-title="t('cvPreview.workExperience')"
+          />
+          <EducationSection
+            v-model="cv.cvData.education"
+            v-model:section-config="cv.cvData.sectionSettings.education"
+            :default-title="t('cvPreview.education')"
+          />
         </template>
 
         <template v-else>
-          <SkillsLanguagesSection v-model="cv.cvData.skills" title="Skill" placeholder="Skill" />
-          <LanguagesSection v-model="cv.cvData.languages" />
+          <SkillsLanguagesSection
+            v-model="cv.cvData.skills"
+            v-model:section-config="cv.cvData.sectionSettings.skills"
+            :default-title="t('cvPreview.skills')"
+            :empty-message="t('cv.emptySkills')"
+            placeholder="Skill"
+          />
+          <LanguagesSection
+            v-model="cv.cvData.languages"
+            v-model:section-config="cv.cvData.sectionSettings.languages"
+            :default-title="t('cvPreview.languages')"
+          />
         </template>
 
         <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3">
@@ -615,7 +716,7 @@ onUnmounted(() => {
         <span class="ml-auto flex shrink-0 items-center gap-2">
           <button
             type="button"
-            class="hidden items-center gap-2 rounded-lg border border-indigo-300/70 bg-gradient-to-r from-indigo-500 via-brand-500 to-cyan-500 px-4 py-1.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/35 focus:outline-none focus:ring-2 focus:ring-indigo-400/60 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 lg:inline-flex"
+            class="btn-cta hidden py-1.5 text-sm lg:inline-flex"
             :disabled="saving || pdfPreparing"
             :aria-busy="pdfPreparing ? 'true' : 'false'"
             @click="downloadPdf"
@@ -638,10 +739,10 @@ onUnmounted(() => {
           </button>
         </span>
       </div>
-      <div class="relative hidden max-h-[calc(100vh-12rem)] overflow-y-auto rounded-md shadow-xl shadow-slate-300/30 lg:block">
-        <p class="mb-3 rounded-lg border border-dashed border-slate-200 bg-white/80 px-3 py-2 text-xs text-slate-600">
-          {{ t("cv.demoAlert") }}
-        </p>
+      <div
+        class="relative hidden max-h-[calc(100vh-12rem)] rounded-md shadow-xl shadow-slate-300/30 lg:block"
+        :class="translatingPreview ? 'overflow-hidden' : 'overflow-y-auto'"
+      >
         <div
           v-if="translatingPreview"
           class="preview-loading-overlay absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-2xl bg-white/90 backdrop-blur-sm"
@@ -686,7 +787,7 @@ onUnmounted(() => {
           <div class="flex items-center gap-2">
             <button
               type="button"
-              class="inline-flex items-center gap-1.5 rounded-lg border border-indigo-300/70 bg-gradient-to-r from-indigo-500 via-brand-500 to-cyan-500 px-3 py-1.5 text-xs font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/60 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              class="btn-cta gap-1.5 px-3 py-1.5 text-xs"
               :disabled="saving || pdfPreparing"
               :aria-busy="pdfPreparing ? 'true' : 'false'"
               @click="downloadPdf"
@@ -707,13 +808,13 @@ onUnmounted(() => {
               </svg>
               {{ pdfPreparing ? t("cv.preparingPdf") : t("cv.downloadPdf") }}
             </button>
-            <button type="button" class="rounded-md border border-slate-200 px-2 py-1 text-sm text-slate-600" @click="closeMobilePreview">
+            <button type="button" class="btn-secondary px-2 py-1 text-sm" @click="closeMobilePreview">
               Close
             </button>
           </div>
         </div>
 
-        <div class="relative flex-1 overflow-y-auto">
+        <div class="relative flex-1" :class="translatingPreview ? 'overflow-hidden' : 'overflow-y-auto'">
           <div
             v-if="translatingPreview"
             class="preview-loading-overlay absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-2xl bg-white/90 backdrop-blur-sm"

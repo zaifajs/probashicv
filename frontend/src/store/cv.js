@@ -1,6 +1,39 @@
 import { defineStore } from "pinia";
 import { cvService } from "../services/cvService";
 
+function defaultSectionSettings() {
+  return {
+    workExperience: { title: "", enabled: true },
+    education: { title: "", enabled: true },
+    skills: { title: "", enabled: true },
+    languages: { title: "", enabled: true }
+  };
+}
+
+export function emptyCvData() {
+  return {
+    personalInfo: {
+      name: "",
+      jobTitle: "",
+      nationality: "",
+      dateOfBirth: "",
+      gender: "",
+      address: "",
+      phone: "",
+      email: "",
+      aboutMe: "",
+      photo: "",
+      workPermitCountry: ""
+    },
+    identityDocuments: [],
+    workExperience: [],
+    education: [],
+    skills: [],
+    languages: [],
+    sectionSettings: defaultSectionSettings()
+  };
+}
+
 export function defaultCvData() {
   return {
     personalInfo: {
@@ -59,7 +92,8 @@ export function defaultCvData() {
     languages: [
       { name: "Bengali", level: "Native" },
       { name: "Portuguese", level: "B1" }
-    ]
+    ],
+    sectionSettings: defaultSectionSettings()
   };
 }
 

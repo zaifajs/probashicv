@@ -56,11 +56,20 @@ watch(
 
 <template>
   <div class="min-h-screen flex flex-col">
-    <header class="header-dashboard">
+    <header class="header-dashboard" :class="{ 'header-dashboard--menu-open': mobileMenuOpen }">
       <div class="header-inner">
         <router-link to="/" class="header-logo">
           <span class="header-logo-text">CV Builder</span>
         </router-link>
+
+        <div v-if="!auth.isAuthenticated" class="header-mobile-auth">
+          <router-link to="/login" class="header-mobile-auth-btn">
+            {{ t("nav.login") }}
+          </router-link>
+          <router-link to="/register" class="header-mobile-auth-btn header-mobile-auth-btn--register">
+            {{ t("nav.register") }}
+          </router-link>
+        </div>
 
         <button
           type="button"
@@ -140,62 +149,56 @@ watch(
         </nav>
       </div>
 
-      <nav v-if="mobileMenuOpen" id="mobile-menu" class="header-mobile-nav md:hidden">
-        <router-link
-          to="/"
-          class="header-mobile-link"
-          :class="{ 'header-mobile-link--active': isActive('/') && route.path === '/' }"
-        >
-          {{ t("nav.home") }}
-        </router-link>
-        <router-link
-          to="/builder"
-          class="header-mobile-link"
-          :class="{ 'header-mobile-link--active': isActive('/builder') }"
-        >
-          Builder
-        </router-link>
-        <router-link
-          v-if="auth.isAuthenticated"
-          to="/dashboard"
-          class="header-mobile-link"
-          :class="{ 'header-mobile-link--active': isActive('/dashboard') }"
-        >
-          {{ t("nav.dashboard") }}
-        </router-link>
+      <Transition name="mobile-menu-slide">
+        <nav v-if="mobileMenuOpen" id="mobile-menu" class="header-mobile-panel md:hidden">
+          <div class="header-mobile-nav">
+            <router-link
+              to="/"
+              class="header-mobile-link"
+              :class="{ 'header-mobile-link--active': isActive('/') && route.path === '/' }"
+            >
+              {{ t("nav.home") }}
+            </router-link>
+            <router-link
+              to="/builder"
+              class="header-mobile-link"
+              :class="{ 'header-mobile-link--active': isActive('/builder') }"
+            >
+              Builder
+            </router-link>
+            <router-link
+              v-if="auth.isAuthenticated"
+              to="/dashboard"
+              class="header-mobile-link"
+              :class="{ 'header-mobile-link--active': isActive('/dashboard') }"
+            >
+              {{ t("nav.dashboard") }}
+            </router-link>
 
-        <template v-if="!auth.isAuthenticated">
-          <router-link to="/login" class="header-mobile-link" :class="{ 'header-mobile-link--active': isActive('/login') }">
-            {{ t("nav.login") }}
-          </router-link>
-          <router-link
-            to="/register"
-            class="header-mobile-link header-mobile-link--cta"
-            :class="{ 'header-mobile-link--active': isActive('/register') }"
-          >
-            {{ t("nav.register") }}
-          </router-link>
-        </template>
-        <template v-else>
-          <button type="button" class="header-mobile-link text-left" @click="logout">
-            {{ t("nav.logout") }}
-          </button>
-        </template>
+            <template v-if="auth.isAuthenticated">
+              <button type="button" class="header-mobile-link text-left" @click="logout">
+                {{ t("nav.logout") }}
+              </button>
+            </template>
 
-        <div class="header-mobile-lang">
-          <label for="header-lang-select-mobile" class="sr-only">Language</label>
-          <select
-            id="header-lang-select-mobile"
-            :value="currentLocale"
-            @change="(e) => setLocale(e.target.value)"
-            class="header-lang-select w-full"
-          >
-            <option value="en">EN</option>
-            <option value="bn">BN</option>
-            <option value="pt">PT</option>
-          </select>
-        </div>
-      </nav>
+            <div class="header-mobile-lang">
+              <label for="header-lang-select-mobile" class="sr-only">Language</label>
+              <select
+                id="header-lang-select-mobile"
+                :value="currentLocale"
+                @change="(e) => setLocale(e.target.value)"
+                class="header-lang-select w-full"
+              >
+                <option value="en">EN</option>
+                <option value="bn">BN</option>
+                <option value="pt">PT</option>
+              </select>
+            </div>
+          </div>
+        </nav>
+      </Transition>
+
+      <div id="builder-progress-host" class="w-full"></div>
     </header>
 
     <main class="container-default flex-1 pb-6">
@@ -217,8 +220,12 @@ watch(
 
 <style scoped>
 .header-dashboard {
-  @apply border-b border-slate-200/90 bg-white/95 shadow-sm backdrop-blur-md;
+  @apply relative z-40 border-b border-slate-200/90 bg-white/95 shadow-sm backdrop-blur-md;
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.92));
+}
+
+.header-dashboard--menu-open {
+  @apply shadow-md;
 }
 
 .header-inner {
@@ -240,11 +247,27 @@ watch(
 }
 
 .header-mobile-toggle {
-  @apply inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white p-2 text-slate-700 transition hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-2 md:hidden;
+  @apply inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white p-0 text-slate-700 transition hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-2 md:hidden;
+}
+
+.header-mobile-auth {
+  @apply ml-auto flex items-center gap-2 md:hidden;
+}
+
+.header-mobile-auth-btn {
+  @apply inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 no-underline transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-2;
+}
+
+.header-mobile-auth-btn--register {
+  @apply border-brand-600 bg-brand-600 text-white hover:bg-brand-700;
+}
+
+.header-mobile-panel {
+  @apply w-full border-t border-slate-200/90 bg-white/95 shadow-md backdrop-blur-md;
 }
 
 .header-mobile-nav {
-  @apply mx-auto mb-2 flex w-full max-w-[90rem] flex-col gap-1 px-4;
+  @apply mx-auto flex w-full max-w-[90rem] flex-col gap-1 px-4 py-2;
 }
 
 .header-mobile-link {
@@ -265,6 +288,24 @@ watch(
 
 .header-mobile-lang {
   @apply mt-2 border-t border-slate-200 pt-2;
+}
+
+.mobile-menu-slide-enter-active,
+.mobile-menu-slide-leave-active {
+  transition: max-height 0.24s ease, transform 0.22s ease, opacity 0.22s ease;
+  overflow: hidden;
+}
+
+.mobile-menu-slide-enter-from,
+.mobile-menu-slide-leave-to {
+  opacity: 0;
+  max-height: 0;
+  transform: translateY(-12px);
+}
+
+.mobile-menu-slide-enter-to,
+.mobile-menu-slide-leave-from {
+  max-height: 24rem;
 }
 
 .header-link {

@@ -33,7 +33,7 @@ onMounted(() => {
   <section class="space-y-4">
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-bold">Dashboard</h1>
-      <button class="rounded-lg bg-brand-600 px-4 py-2 text-white" @click="createNew">Create CV</button>
+      <button class="btn-cta" @click="createNew">Create CV</button>
     </div>
 
     <div class="grid gap-3">
@@ -47,8 +47,8 @@ onMounted(() => {
           <p class="text-xs text-slate-500">Language: {{ cv.outputLanguage }} | Public: {{ cv.isPublic ? "Yes" : "No" }}</p>
         </div>
         <div class="flex gap-2">
-          <router-link :to="`/builder/${cv.id}`" class="rounded border px-3 py-1 text-sm">Edit</router-link>
-          <router-link :to="`/cv/${cv.slug}`" class="rounded border px-3 py-1 text-sm">Public Link</router-link>
+          <router-link :to="`/builder/${cv.id}`" class="btn-secondary px-3 py-1 text-sm">Edit</router-link>
+          <router-link :to="`/cv/${cv.slug}`" class="btn-secondary px-3 py-1 text-sm">Public Link</router-link>
           <button class="rounded bg-red-600 px-3 py-1 text-sm text-white" @click="remove(cv.id)">Delete</button>
         </div>
       </article>

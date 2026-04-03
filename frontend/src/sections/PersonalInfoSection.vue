@@ -45,7 +45,7 @@ function addIdentityDocument() {
 
 function removeIdentityDocument(index) {
   const list = identityDocuments.value ?? [];
-  if (list.length <= 1) return;
+  if (list.length === 0) return;
   identityDocuments.value = list.filter((_, i) => i !== index);
 }
 </script>
@@ -55,7 +55,7 @@ function removeIdentityDocument(index) {
     <h2 class="section-title mb-4">{{ t("cvPreview.personalInfo") }}</h2>
 
     <!-- Photo + key contact fields -->
-    <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-[auto,minmax(0,1fr)]">
+    <div class="mb-6 grid grid-cols-[auto,minmax(0,1fr)] gap-4">
       <div class="flex flex-col items-start">
         <label class="group relative block cursor-pointer">
           <input type="file" accept="image/*" class="sr-only" @change="emit('photo-change', $event)" />
@@ -97,16 +97,16 @@ function removeIdentityDocument(index) {
           <input v-model="model.name" class="form-input" :placeholder="t('auth.name')" />
         </div>
         <div class="flex flex-col">
-          <label class="form-label">{{ t("cvPreview.phoneNumber") }}</label>
-          <input v-model="model.phone" class="form-input" :placeholder="t('cvPreview.phoneNumber')" />
+          <label class="form-label">{{ t("cvPreview.jobTitle") }}</label>
+          <input v-model="model.jobTitle" class="form-input" :placeholder="t('cvPreview.jobTitle')" />
         </div>
       </div>
     </div>
 
     <div class="grid gap-4 sm:grid-cols-2">
       <div class="flex flex-col">
-        <label class="form-label">{{ t("cvPreview.jobTitle") }}</label>
-        <input v-model="model.jobTitle" class="form-input" :placeholder="t('cvPreview.jobTitle')" />
+        <label class="form-label">{{ t("cvPreview.phoneNumber") }}</label>
+        <input v-model="model.phone" class="form-input" :placeholder="t('cvPreview.phoneNumber')" />
       </div>
       <div class="flex flex-col">
         <CountrySearchSelect
@@ -158,7 +158,6 @@ function removeIdentityDocument(index) {
           </div>
           <div class="flex items-end">
             <button
-              v-if="(identityDocuments ?? []).length > 1"
               type="button"
               class="btn-ghost text-slate-500"
               :aria-label="t('cvPreview.remove')"

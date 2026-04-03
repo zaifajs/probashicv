@@ -71,12 +71,19 @@ function text(value, fallback = "-") {
   return normalized ? escapeHtml(normalized) : fallback;
 }
 
-/** Format YYYY-MM-DD (or ISO date string) as DD/MM/YYYY for display */
+/** Format YYYY-MM-DD (or ISO date string) as "January 23, 2004" for display */
 function formatDate(value) {
   const s = String(value ?? "").trim();
   if (!s) return s;
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+  if (!m) return s;
+  const date = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return s;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  }).format(date);
 }
 
 function formatYear(value) {
@@ -179,6 +186,17 @@ export function getCvHtml(cv) {
   const data = cv.cvData || {};
   const personal = data.personalInfo || {};
   const labels = LABELS[cv.outputLanguage] || LABELS.en;
+  const sectionSettings = data.sectionSettings || {};
+  const getSectionConfig = (key, fallbackTitle) => {
+    const raw = sectionSettings?.[key];
+    const enabled = raw?.enabled !== false;
+    const title = String(raw?.title ?? "").trim() || fallbackTitle;
+    return { enabled, title };
+  };
+  const workSection = getSectionConfig("workExperience", labels.workExperience);
+  const educationSection = getSectionConfig("education", labels.educationTraining);
+  const skillsSection = getSectionConfig("skills", labels.skills);
+  const languagesSection = getSectionConfig("languages", labels.languages);
   const photoSrc = formatPhotoSrc(personal.photo || "");
 
   const identityDocsFiltered = (data.identityDocuments || []).filter((d) => (d.type || "").trim() || (d.number || "").trim());
@@ -219,15 +237,16 @@ export function getCvHtml(cv) {
       .cv-address-text { color: #475569; }
       .cv-link { color: #4169E1; text-decoration: underline; }
       .meta-line { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 14px; color: #64748b; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
-      .meta-line strong { color: #475569; }
+      .meta-line strong { color: #475569; font-weight: 600; }
       .section { margin-top: 16px; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9; }
       .section:last-of-type { border-bottom: 0; }
-      .section-title { margin: 0 0 10px; font-size: 16px; font-weight: 700; color: #4169E1; border-bottom: 2px solid #4169E1; padding-bottom: 4px; }
+      .section-title { margin: 0 0 10px; font-size: 16px; font-weight: 600; color: #4169E1; border-bottom: 1px solid #4169E1; padding-bottom: 4px; }
       .entry { margin-bottom: 14px; }
       .entry-title-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
-      .entry h4 { margin: 0; font-size: 15px; font-weight: 700; color: #0f172a; }
+      .entry h4 { margin: 0; font-size: 15px; font-weight: 600; color: #0f172a; }
       .entry-dates { font-size: 13px; font-weight: 600; color: #334155; flex-shrink: 0; }
       .entry-company { margin: 4px 0 0; font-size: 13px; color: #334155; }
+      .entry-company strong { font-weight: 600; }
       .entry-location { margin: 2px 0 0; font-size: 13px; color: #475569; }
       .desc-list { margin: 8px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.45; color: #334155; }
       .description { margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: #334155; }
@@ -257,25 +276,33 @@ export function getCvHtml(cv) {
           ${renderMetaLine(labels.workPermit, personal.workPermitCountry)}
         </div>` : ""}
 
-        <section class="section">
-          <h3 class="section-title">${escapeHtml(labels.skills)}</h3>
+        ${skillsSection.enabled
+          ? `<section class="section">
+          <h3 class="section-title">${escapeHtml(skillsSection.title)}</h3>
           ${renderInlineList(Array.isArray(data.skills) ? data.skills : [])}
-        </section>
+        </section>`
+          : ""}
 
-        <section class="section">
-          <h3 class="section-title">${escapeHtml(labels.workExperience)}</h3>
+        ${workSection.enabled
+          ? `<section class="section">
+          <h3 class="section-title">${escapeHtml(workSection.title)}</h3>
           ${renderExperience(data.workExperience, labels.present)}
-        </section>
+        </section>`
+          : ""}
 
-        <section class="section">
-          <h3 class="section-title">${escapeHtml(labels.educationTraining)}</h3>
+        ${educationSection.enabled
+          ? `<section class="section">
+          <h3 class="section-title">${escapeHtml(educationSection.title)}</h3>
           ${renderEducation(data.education, labels.present)}
-        </section>
+        </section>`
+          : ""}
 
-        <section class="section">
-          <h3 class="section-title">${escapeHtml(labels.languages)}</h3>
+        ${languagesSection.enabled
+          ? `<section class="section">
+          <h3 class="section-title">${escapeHtml(languagesSection.title)}</h3>
           ${renderLanguageList(Array.isArray(data.languages) ? data.languages : [])}
-        </section>
+        </section>`
+          : ""}
       </div>
     </div>
   </body>
